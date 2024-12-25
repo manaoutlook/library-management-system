@@ -1,0 +1,109 @@
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+import json
+import os
+from typing import Optional
+import logging
+
+logger = logging.getLogger(__name__)
+
+class User(UserMixin):
+    def __init__(self, id: str, username: str, email: str, role: str):
+        self.id = id
+        self.username = username
+        self.email = email
+        self.role = role
+
+    @staticmethod
+    def get(user_id: str) -> Optional['User']:
+        users = load_users()
+        user_data = users.get(user_id)
+        if user_data:
+            return User(
+                id=user_id,
+                username=user_data['username'],
+                email=user_data['email'],
+                role=user_data['role']
+            )
+        return None
+
+def init_user_storage():
+    """Initialize the users.json file if it doesn't exist"""
+    if not os.path.exists('data/users.json'):
+        os.makedirs('data', exist_ok=True)
+        with open('data/users.json', 'w') as f:
+            json.dump({}, f)
+
+def load_users():
+    """Load users from the JSON file"""
+    try:
+        with open('data/users.json', 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.error(f"Error loading users: {e}")
+        return {}
+
+def save_users(users):
+    """Save users to the JSON file"""
+    try:
+        with open('data/users.json', 'w') as f:
+            json.dump(users, f, indent=4)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving users: {e}")
+        return False
+
+def register_user(username: str, email: str, password: str, role: str = 'user') -> bool:
+    """Register a new user"""
+    users = load_users()
+    
+    # Check if username or email already exists
+    for user in users.values():
+        if user['username'] == username or user['email'] == email:
+            return False
+    
+    # Create new user
+    user_id = str(len(users) + 1)
+    users[user_id] = {
+        'username': username,
+        'email': email,
+        'password': generate_password_hash(password),
+        'role': role
+    }
+    
+    return save_users(users)
+
+def authenticate_user(email: str, password: str) -> Optional[User]:
+    """Authenticate a user"""
+    users = load_users()
+    
+    for user_id, user_data in users.items():
+        if user_data['email'] == email and check_password_hash(user_data['password'], password):
+            return User(
+                id=user_id,
+                username=user_data['username'],
+                email=user_data['email'],
+                role=user_data['role']
+            )
+    return None
+
+def requires_role(*roles):
+    """Decorator to require specific roles for access"""
+    def decorator(f):
+        from functools import wraps
+        from flask_login import current_user
+        from flask import flash, redirect, url_for
+
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated:
+                flash('Please log in to access this page.', 'error')
+                return redirect(url_for('login'))
+            
+            if current_user.role not in roles:
+                flash('You do not have permission to access this page.', 'error')
+                return redirect(url_for('dashboard'))
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator

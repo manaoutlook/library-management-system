@@ -21,6 +21,10 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, validators
+from auth import User, init_user_storage, register_user, authenticate_user, requires_role
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -88,7 +92,7 @@ def generate_pdf_report(data, headers, title):
 
         table_data = [headers]
         for item in data:
-            row = [str(sanitize_input(item.get(header.lower().replace(' ', '_'), ''))) 
+            row = [str(sanitize_input(item.get(header.lower().replace(' ', '_'), '')))
                   for header in headers]
             table_data.append(row)
 
@@ -176,149 +180,66 @@ def export_data(data_type, format):
     flash('Invalid export format', 'error')
     return redirect(url_for('dashboard'))
 
+
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# Initialize user storage
+init_user_storage()
+
+# Forms
+class LoginForm(FlaskForm):
+    email = StringField('Email', [validators.Email()])
+    password = PasswordField('Password', [validators.DataRequired()])
+
+class RegisterForm(FlaskForm):
+    username = StringField('Username', [validators.Length(min=4, max=25)])
+    email = StringField('Email', [validators.Email()])
+    password = PasswordField('Password', [validators.Length(min=6)])
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.get(user_id)
+
+# Authentication routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = authenticate_user(form.email.data, form.password.data)
+        if user:
+            login_user(user)
+            flash('Logged in successfully.', 'success')
+            return redirect(url_for('dashboard'))
+        flash('Invalid email or password.', 'error')
+    return render_template('login.html', form=form)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        if register_user(form.username.data, form.email.data, form.password.data):
+            flash('Registration successful. Please login.', 'success')
+            return redirect(url_for('login'))
+        flash('Username or email already exists.', 'error')
+    return render_template('register.html', form=form)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Logged out successfully.', 'success')
+    return redirect(url_for('login'))
+
+# Protected routes
 @app.route('/')
 def index():
     return redirect(url_for('dashboard'))
 
-@app.route('/books', methods=['GET', 'POST'])
-def books():
-    if request.method == 'POST':
-        book_data = {
-            'title': sanitize_input(request.form.get('title')),
-            'author': sanitize_input(request.form.get('author')),
-            'isbn': sanitize_input(request.form.get('isbn')),
-            'quantity': int(sanitize_input(request.form.get('quantity', 1)))
-        }
-        
-        if validate_book(book_data):
-            books = load_data('books.json')
-            books.append(book_data)
-            save_data('books.json', books)
-            flash('Book added successfully!', 'success')
-        else:
-            flash('Invalid book data!', 'error')
-            
-    books = load_data('books.json')
-    return render_template('books.html', books=books)
-
-@app.route('/books/<isbn>/edit', methods=['GET', 'POST'])
-def edit_book(isbn):
-    if request.method == 'POST':
-        book_data = {
-            'title': sanitize_input(request.form.get('title')),
-            'author': sanitize_input(request.form.get('author')),
-            'isbn': sanitize_input(request.form.get('isbn')),
-            'quantity': int(sanitize_input(request.form.get('quantity', 1)))
-        }
-
-        if validate_book(book_data):
-            update_record('books.json', 'isbn', isbn, book_data)
-            flash('Book updated successfully!', 'success')
-            return redirect(url_for('books'))
-        else:
-            flash('Invalid book data!', 'error')
-
-    book = get_record('books.json', 'isbn', isbn)
-    if not book:
-        flash('Book not found!', 'error')
-        return redirect(url_for('books'))
-
-    return render_template('edit_book.html', book=book)
-
-@app.route('/books/<isbn>/delete')
-def delete_book(isbn):
-    delete_record('books.json', 'isbn', isbn)
-    flash('Book deleted successfully!', 'success')
-    return redirect(url_for('books'))
-
-@app.route('/members', methods=['GET', 'POST'])
-def members():
-    if request.method == 'POST':
-        member_data = {
-            'name': sanitize_input(request.form.get('name')),
-            'email': sanitize_input(request.form.get('email')),
-            'phone': sanitize_input(request.form.get('phone'))
-        }
-        
-        if validate_member(member_data):
-            members = load_data('members.json')
-            members.append(member_data)
-            save_data('members.json', members)
-            flash('Member added successfully!', 'success')
-        else:
-            flash('Invalid member data!', 'error')
-            
-    members = load_data('members.json')
-    return render_template('members.html', members=members)
-
-@app.route('/members/<email>/edit', methods=['GET', 'POST'])
-def edit_member(email):
-    if request.method == 'POST':
-        member_data = {
-            'name': sanitize_input(request.form.get('name')),
-            'email': sanitize_input(request.form.get('email')),
-            'phone': sanitize_input(request.form.get('phone'))
-        }
-
-        if validate_member(member_data):
-            update_record('members.json', 'email', email, member_data)
-            flash('Member updated successfully!', 'success')
-            return redirect(url_for('members'))
-        else:
-            flash('Invalid member data!', 'error')
-
-    member = get_record('members.json', 'email', email)
-    if not member:
-        flash('Member not found!', 'error')
-        return redirect(url_for('members'))
-
-    return render_template('edit_member.html', member=member)
-
-@app.route('/members/<email>/delete')
-def delete_member(email):
-    delete_record('members.json', 'email', email)
-    flash('Member deleted successfully!', 'success')
-    return redirect(url_for('members'))
-
-
-@app.route('/transactions', methods=['GET', 'POST'])
-def transactions():
-    if request.method == 'POST':
-        transaction_data = {
-            'book_isbn': sanitize_input(request.form.get('book_isbn')),
-            'member_email': sanitize_input(request.form.get('member_email')),
-            'type': sanitize_input(request.form.get('type')),  # 'borrow' or 'return'
-            'date': sanitize_input(request.form.get('date'))
-        }
-        
-        if validate_transaction(transaction_data):
-            transactions = load_data('transactions.json')
-            transactions.append(transaction_data)
-            save_data('transactions.json', transactions)
-            flash('Transaction recorded successfully!', 'success')
-        else:
-            flash('Invalid transaction data!', 'error')
-            
-    transactions = load_data('transactions.json')
-    books = load_data('books.json')
-    members = load_data('members.json')
-    return render_template('transactions.html', 
-                         transactions=transactions,
-                         books=books,
-                         members=members)
-
-@app.route('/transactions/<int:id>/delete')
-def delete_transaction(id):
-    transactions = load_data('transactions.json')
-    if 0 <= id < len(transactions):
-        transactions.pop(id)
-        save_data('transactions.json', transactions)
-        flash('Transaction deleted successfully!', 'success')
-    else:
-        flash('Transaction not found!', 'error')
-    return redirect(url_for('transactions'))
-
 @app.route('/dashboard')
+@login_required
 def dashboard():
     books = load_data('books.json')
     members = load_data('members.json')
@@ -353,6 +274,160 @@ def dashboard():
             })
 
     return render_template('dashboard.html', stats=stats, borrowed_books=currently_borrowed)
+
+@app.route('/books', methods=['GET', 'POST'])
+@login_required
+@requires_role('admin', 'librarian')
+def books():
+    if request.method == 'POST':
+        book_data = {
+            'title': sanitize_input(request.form.get('title')),
+            'author': sanitize_input(request.form.get('author')),
+            'isbn': sanitize_input(request.form.get('isbn')),
+            'quantity': int(sanitize_input(request.form.get('quantity', 1)))
+        }
+
+        if validate_book(book_data):
+            books = load_data('books.json')
+            books.append(book_data)
+            save_data('books.json', books)
+            flash('Book added successfully!', 'success')
+        else:
+            flash('Invalid book data!', 'error')
+
+    books = load_data('books.json')
+    return render_template('books.html', books=books)
+
+@app.route('/books/<isbn>/edit', methods=['GET', 'POST'])
+@login_required
+@requires_role('admin', 'librarian')
+def edit_book(isbn):
+    if request.method == 'POST':
+        book_data = {
+            'title': sanitize_input(request.form.get('title')),
+            'author': sanitize_input(request.form.get('author')),
+            'isbn': sanitize_input(request.form.get('isbn')),
+            'quantity': int(sanitize_input(request.form.get('quantity', 1)))
+        }
+
+        if validate_book(book_data):
+            update_record('books.json', 'isbn', isbn, book_data)
+            flash('Book updated successfully!', 'success')
+            return redirect(url_for('books'))
+        else:
+            flash('Invalid book data!', 'error')
+
+    book = get_record('books.json', 'isbn', isbn)
+    if not book:
+        flash('Book not found!', 'error')
+        return redirect(url_for('books'))
+
+    return render_template('edit_book.html', book=book)
+
+@app.route('/books/<isbn>/delete')
+@login_required
+@requires_role('admin', 'librarian')
+def delete_book(isbn):
+    delete_record('books.json', 'isbn', isbn)
+    flash('Book deleted successfully!', 'success')
+    return redirect(url_for('books'))
+
+@app.route('/members', methods=['GET', 'POST'])
+@login_required
+@requires_role('admin', 'librarian')
+def members():
+    if request.method == 'POST':
+        member_data = {
+            'name': sanitize_input(request.form.get('name')),
+            'email': sanitize_input(request.form.get('email')),
+            'phone': sanitize_input(request.form.get('phone'))
+        }
+
+        if validate_member(member_data):
+            members = load_data('members.json')
+            members.append(member_data)
+            save_data('members.json', members)
+            flash('Member added successfully!', 'success')
+        else:
+            flash('Invalid member data!', 'error')
+
+    members = load_data('members.json')
+    return render_template('members.html', members=members)
+
+@app.route('/members/<email>/edit', methods=['GET', 'POST'])
+@login_required
+@requires_role('admin', 'librarian')
+def edit_member(email):
+    if request.method == 'POST':
+        member_data = {
+            'name': sanitize_input(request.form.get('name')),
+            'email': sanitize_input(request.form.get('email')),
+            'phone': sanitize_input(request.form.get('phone'))
+        }
+
+        if validate_member(member_data):
+            update_record('members.json', 'email', email, member_data)
+            flash('Member updated successfully!', 'success')
+            return redirect(url_for('members'))
+        else:
+            flash('Invalid member data!', 'error')
+
+    member = get_record('members.json', 'email', email)
+    if not member:
+        flash('Member not found!', 'error')
+        return redirect(url_for('members'))
+
+    return render_template('edit_member.html', member=member)
+
+@app.route('/members/<email>/delete')
+@login_required
+@requires_role('admin', 'librarian')
+def delete_member(email):
+    delete_record('members.json', 'email', email)
+    flash('Member deleted successfully!', 'success')
+    return redirect(url_for('members'))
+
+
+@app.route('/transactions', methods=['GET', 'POST'])
+@login_required
+@requires_role('admin', 'librarian')
+def transactions():
+    if request.method == 'POST':
+        transaction_data = {
+            'book_isbn': sanitize_input(request.form.get('book_isbn')),
+            'member_email': sanitize_input(request.form.get('member_email')),
+            'type': sanitize_input(request.form.get('type')),  # 'borrow' or 'return'
+            'date': sanitize_input(request.form.get('date'))
+        }
+
+        if validate_transaction(transaction_data):
+            transactions = load_data('transactions.json')
+            transactions.append(transaction_data)
+            save_data('transactions.json', transactions)
+            flash('Transaction recorded successfully!', 'success')
+        else:
+            flash('Invalid transaction data!', 'error')
+
+    transactions = load_data('transactions.json')
+    books = load_data('books.json')
+    members = load_data('members.json')
+    return render_template('transactions.html',
+                         transactions=transactions,
+                         books=books,
+                         members=members)
+
+@app.route('/transactions/<int:id>/delete')
+@login_required
+@requires_role('admin', 'librarian')
+def delete_transaction(id):
+    transactions = load_data('transactions.json')
+    if 0 <= id < len(transactions):
+        transactions.pop(id)
+        save_data('transactions.json', transactions)
+        flash('Transaction deleted successfully!', 'success')
+    else:
+        flash('Transaction not found!', 'error')
+    return redirect(url_for('transactions'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
