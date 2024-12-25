@@ -1,6 +1,8 @@
 import os
 import logging
-from flask import Flask, render_template, request, redirect, url_for, flash
+import csv
+from io import StringIO, BytesIO
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file
 from utils import (
     load_data,
     save_data,
@@ -10,6 +12,10 @@ from utils import (
 )
 from collections import defaultdict
 from datetime import datetime
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -20,6 +26,100 @@ app.secret_key = "library_management_secret_key"
 
 # Ensure data directory exists
 os.makedirs("data", exist_ok=True)
+
+def generate_pdf_report(data, headers, title):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    elements = []
+
+    # Add title
+    styles = getSampleStyleSheet()
+    elements.append(Paragraph(title, styles['Heading1']))
+
+    # Convert data to table format
+    table_data = [headers]
+    for item in data:
+        row = [str(item.get(header.lower().replace(' ', '_'), '')) for header in headers]
+        table_data.append(row)
+
+    # Create table
+    table = Table(table_data)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 14),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    elements.append(table)
+
+    # Build PDF
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
+@app.route('/export/<data_type>/<format>')
+def export_data(data_type, format):
+    if data_type not in ['books', 'members', 'transactions']:
+        flash('Invalid data type for export', 'error')
+        return redirect(url_for('dashboard'))
+
+    data = load_data(f'{data_type}.json')
+
+    if format == 'csv':
+        si = StringIO()
+        writer = csv.writer(si)
+
+        if data_type == 'books':
+            headers = ['Title', 'Author', 'ISBN', 'Quantity']
+            writer.writerow(headers)
+            for item in data:
+                writer.writerow([item['title'], item['author'], item['isbn'], item['quantity']])
+        elif data_type == 'members':
+            headers = ['Name', 'Email', 'Phone']
+            writer.writerow(headers)
+            for item in data:
+                writer.writerow([item['name'], item['email'], item['phone']])
+        else:  # transactions
+            headers = ['Book ISBN', 'Member Email', 'Type', 'Date']
+            writer.writerow(headers)
+            for item in data:
+                writer.writerow([item['book_isbn'], item['member_email'], item['type'], item['date']])
+
+        output = si.getvalue()
+        si.close()
+
+        return send_file(
+            BytesIO(output.encode()),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=f'{data_type}_{datetime.now().strftime("%Y%m%d")}.csv'
+        )
+
+    elif format == 'pdf':
+        if data_type == 'books':
+            headers = ['Title', 'Author', 'ISBN', 'Quantity']
+        elif data_type == 'members':
+            headers = ['Name', 'Email', 'Phone']
+        else:  # transactions
+            headers = ['Book ISBN', 'Member Email', 'Type', 'Date']
+
+        pdf_buffer = generate_pdf_report(data, headers, f'Library {data_type.title()} Report')
+
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f'{data_type}_{datetime.now().strftime("%Y%m%d")}.pdf'
+        )
+
+    flash('Invalid export format', 'error')
+    return redirect(url_for('dashboard'))
 
 @app.route('/')
 def index():
@@ -101,7 +201,7 @@ def dashboard():
     # Calculate statistics
     stats = {
         'total_books': sum(book['quantity'] for book in books),
-        'unique_titles': len(set(book['title'] for book in books)), # Corrected unique titles count
+        'unique_titles': len(set(book['title'] for book in books)),
         'total_members': len(members),
         'recent_transactions': sorted(transactions, key=lambda x: x['date'], reverse=True)[:5]
     }
@@ -127,3 +227,6 @@ def dashboard():
             })
 
     return render_template('dashboard.html', stats=stats, borrowed_books=currently_borrowed)
+
+if __name__ == '__main__':
+    app.run(debug=True)

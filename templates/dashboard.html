@@ -8,6 +8,10 @@
                 <h5 class="card-title">Total Books</h5>
                 <p class="card-text display-4">{{ stats.total_books }}</p>
                 <p class="card-text text-muted">{{ stats.unique_titles }} unique titles</p>
+                <div class="btn-group">
+                    <a href="{{ url_for('export_data', data_type='books', format='csv') }}" class="btn btn-sm btn-outline-primary">Export CSV</a>
+                    <a href="{{ url_for('export_data', data_type='books', format='pdf') }}" class="btn btn-sm btn-outline-secondary">Export PDF</a>
+                </div>
             </div>
         </div>
     </div>
@@ -16,6 +20,10 @@
             <div class="card-body">
                 <h5 class="card-title">Total Members</h5>
                 <p class="card-text display-4">{{ stats.total_members }}</p>
+                <div class="btn-group">
+                    <a href="{{ url_for('export_data', data_type='members', format='csv') }}" class="btn btn-sm btn-outline-primary">Export CSV</a>
+                    <a href="{{ url_for('export_data', data_type='members', format='pdf') }}" class="btn btn-sm btn-outline-secondary">Export PDF</a>
+                </div>
             </div>
         </div>
     </div>
@@ -57,7 +65,13 @@
     <div class="col-12">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Recent Transactions</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">Recent Transactions</h5>
+                    <div class="btn-group">
+                        <a href="{{ url_for('export_data', data_type='transactions', format='csv') }}" class="btn btn-sm btn-outline-primary">Export CSV</a>
+                        <a href="{{ url_for('export_data', data_type='transactions', format='pdf') }}" class="btn btn-sm btn-outline-secondary">Export PDF</a>
+                    </div>
+                </div>
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
