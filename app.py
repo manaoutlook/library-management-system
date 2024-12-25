@@ -328,20 +328,30 @@ def dashboard():
 def books():
     form = FlaskForm()  # Initialize form for CSRF protection
     if request.method == 'POST' and form.validate_on_submit():
-        book_data = {
-            'title': sanitize_input(request.form.get('title')),
-            'author': sanitize_input(request.form.get('author')),
-            'isbn': sanitize_input(request.form.get('isbn')),
-            'quantity': int(sanitize_input(request.form.get('quantity', 1)))
-        }
+        try:
+            book_data = {
+                'title': sanitize_input(request.form.get('title')),
+                'author': sanitize_input(request.form.get('author')),
+                'isbn': sanitize_input(request.form.get('isbn')),
+                'quantity': int(sanitize_input(request.form.get('quantity', 1)))
+            }
 
-        if validate_book(book_data):
-            books = load_data('books.json')
-            books.append(book_data)
-            save_data('books.json', books)
-            flash('Book added successfully!', 'success')
-        else:
-            flash('Invalid book data!', 'error')
+            if validate_book(book_data):
+                books = load_data('books.json')
+                # Check if ISBN already exists
+                if any(book['isbn'] == book_data['isbn'] for book in books):
+                    flash('A book with this ISBN already exists!', 'error')
+                else:
+                    books.append(book_data)
+                    save_data('books.json', books)
+                    flash('Book added successfully!', 'success')
+            else:
+                flash('Please check the book details. Ensure ISBN is valid and all fields are properly filled.', 'error')
+        except ValueError as e:
+            flash(f'Invalid input: {str(e)}', 'error')
+        except Exception as e:
+            logging.error(f"Error adding book: {str(e)}")
+            flash('An error occurred while adding the book. Please try again.', 'error')
 
     books = load_data('books.json')
     return render_template('books.html', books=books, form=form)

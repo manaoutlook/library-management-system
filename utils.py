@@ -50,51 +50,74 @@ def save_data(filename, data):
         return False
 
 def is_valid_isbn(isbn):
-    """Validate ISBN-10 or ISBN-13"""
+    """Validate ISBN-10 or ISBN-13 with more lenient checking"""
+    if not isbn:
+        return False
+
+    # Remove any hyphens or spaces from the ISBN
     isbn = re.sub(r'[^0-9X]', '', isbn.upper())
 
     if len(isbn) == 10:
         if not re.match(r'^[0-9]{9}[0-9X]$', isbn):
             return False
-        # ISBN-10 validation
-        check_sum = sum((10 - i) * (int(num) if num != 'X' else 10) 
-                       for i, num in enumerate(isbn))
-        return check_sum % 11 == 0
+        try:
+            # ISBN-10 validation
+            check_sum = sum((10 - i) * (int(num) if num != 'X' else 10) 
+                           for i, num in enumerate(isbn))
+            return check_sum % 11 == 0
+        except Exception:
+            return False
 
     elif len(isbn) == 13:
         if not re.match(r'^[0-9]{13}$', isbn):
             return False
-        # ISBN-13 validation
-        check_sum = sum((3 if i % 2 else 1) * int(num) 
-                       for i, num in enumerate(isbn))
-        return check_sum % 10 == 0
+        try:
+            # ISBN-13 validation
+            check_sum = sum((3 if i % 2 else 1) * int(num) 
+                           for i, num in enumerate(isbn))
+            return check_sum % 10 == 0
+        except Exception:
+            return False
 
     return False
 
 def validate_book(book):
-    """Validate book data with improved checks"""
+    """Validate book data with improved error handling"""
     required_fields = ['title', 'author', 'isbn', 'quantity']
+    error_messages = []
 
     try:
         # Check required fields
-        if not all(field in book and book[field] for field in required_fields):
-            return False
+        for field in required_fields:
+            if field not in book or not book[field]:
+                error_messages.append(f"Missing required field: {field}")
+                return False
 
         # Validate quantity
-        if not isinstance(book['quantity'], int) or book['quantity'] < 0:
+        try:
+            quantity = int(book['quantity'])
+            if quantity < 0:
+                error_messages.append("Quantity must be a positive number")
+                return False
+        except (ValueError, TypeError):
+            error_messages.append("Invalid quantity value")
             return False
 
         # Validate ISBN
         if not is_valid_isbn(book['isbn']):
+            error_messages.append("Invalid ISBN format")
             return False
 
         # Validate string fields
-        if not all(isinstance(book[field], str) and book[field].strip() 
-                  for field in ['title', 'author', 'isbn']):
-            return False
+        for field in ['title', 'author', 'isbn']:
+            if not isinstance(book[field], str) or not book[field].strip():
+                error_messages.append(f"Invalid {field}")
+                return False
 
         return True
-    except Exception:
+    except Exception as e:
+        logging.error(f"Book validation error: {str(e)}")
+        error_messages.append("Unexpected error during validation")
         return False
 
 def validate_member(member):
