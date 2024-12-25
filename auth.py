@@ -34,6 +34,22 @@ def init_user_storage():
         with open('data/users.json', 'w') as f:
             json.dump({}, f)
 
+    # Create superuser if it doesn't exist
+    users = load_users()
+    superuser_exists = any(
+        user['email'] == 'admin@library.com' 
+        for user in users.values()
+    )
+
+    if not superuser_exists:
+        register_user(
+            username='admin',
+            email='admin@library.com',
+            password='admin123',
+            role='admin'
+        )
+        logger.info("Superuser account created")
+
 def load_users():
     """Load users from the JSON file"""
     try:
@@ -56,12 +72,12 @@ def save_users(users):
 def register_user(username: str, email: str, password: str, role: str = 'user') -> bool:
     """Register a new user"""
     users = load_users()
-    
+
     # Check if username or email already exists
     for user in users.values():
         if user['username'] == username or user['email'] == email:
             return False
-    
+
     # Create new user
     user_id = str(len(users) + 1)
     users[user_id] = {
@@ -70,13 +86,13 @@ def register_user(username: str, email: str, password: str, role: str = 'user') 
         'password': generate_password_hash(password),
         'role': role
     }
-    
+
     return save_users(users)
 
 def authenticate_user(email: str, password: str) -> Optional[User]:
     """Authenticate a user"""
     users = load_users()
-    
+
     for user_id, user_data in users.items():
         if user_data['email'] == email and check_password_hash(user_data['password'], password):
             return User(
@@ -99,11 +115,11 @@ def requires_role(*roles):
             if not current_user.is_authenticated:
                 flash('Please log in to access this page.', 'error')
                 return redirect(url_for('login'))
-            
+
             if current_user.role not in roles:
                 flash('You do not have permission to access this page.', 'error')
                 return redirect(url_for('dashboard'))
-            
+
             return f(*args, **kwargs)
         return decorated_function
     return decorator

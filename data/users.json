@@ -1,1 +1,8 @@
-{}
+{
+    "1": {
+        "username": "admin",
+        "email": "admin@library.com",
+        "password": "scrypt:32768:8:1$MyXmkwXLFdIJrWnr$7775893b70755f149dbe3bbb8bf9d4d3df77e913f480437766fd18152c538f32734edccbe4e27acca0dc6974850e2b9f4610dbaefedaed4c5d064570ed892b97",
+        "role": "admin"
+    }
+}
