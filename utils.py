@@ -23,6 +23,21 @@ def save_data(filename, data):
         json.dump(data, f, indent=4)
         fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
+def update_record(filename, identifier_field, identifier_value, new_data):
+    data = load_data(filename)
+    for item in data:
+        if item.get(identifier_field) == identifier_value:
+            item.update(new_data)
+            break
+    save_data(filename, data)
+    return True
+
+def delete_record(filename, identifier_field, identifier_value):
+    data = load_data(filename)
+    data = [item for item in data if item.get(identifier_field) != identifier_value]
+    save_data(filename, data)
+    return True
+
 def validate_book(book):
     required_fields = ['title', 'author', 'isbn', 'quantity']
     if not all(field in book for field in required_fields):
@@ -54,3 +69,10 @@ def validate_transaction(transaction):
     except ValueError:
         return False
     return True
+
+def get_record(filename, identifier_field, identifier_value):
+    data = load_data(filename)
+    for item in data:
+        if item.get(identifier_field) == identifier_value:
+            return item
+    return None

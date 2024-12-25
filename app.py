@@ -8,7 +8,10 @@ from utils import (
     save_data,
     validate_book,
     validate_member,
-    validate_transaction
+    validate_transaction,
+    update_record,
+    delete_record,
+    get_record
 )
 from collections import defaultdict
 from datetime import datetime
@@ -146,6 +149,36 @@ def books():
     books = load_data('books.json')
     return render_template('books.html', books=books)
 
+@app.route('/books/<isbn>/edit', methods=['GET', 'POST'])
+def edit_book(isbn):
+    if request.method == 'POST':
+        book_data = {
+            'title': request.form.get('title'),
+            'author': request.form.get('author'),
+            'isbn': request.form.get('isbn'),
+            'quantity': int(request.form.get('quantity', 1))
+        }
+
+        if validate_book(book_data):
+            update_record('books.json', 'isbn', isbn, book_data)
+            flash('Book updated successfully!', 'success')
+            return redirect(url_for('books'))
+        else:
+            flash('Invalid book data!', 'error')
+
+    book = get_record('books.json', 'isbn', isbn)
+    if not book:
+        flash('Book not found!', 'error')
+        return redirect(url_for('books'))
+
+    return render_template('edit_book.html', book=book)
+
+@app.route('/books/<isbn>/delete')
+def delete_book(isbn):
+    delete_record('books.json', 'isbn', isbn)
+    flash('Book deleted successfully!', 'success')
+    return redirect(url_for('books'))
+
 @app.route('/members', methods=['GET', 'POST'])
 def members():
     if request.method == 'POST':
@@ -165,6 +198,36 @@ def members():
             
     members = load_data('members.json')
     return render_template('members.html', members=members)
+
+@app.route('/members/<email>/edit', methods=['GET', 'POST'])
+def edit_member(email):
+    if request.method == 'POST':
+        member_data = {
+            'name': request.form.get('name'),
+            'email': request.form.get('email'),
+            'phone': request.form.get('phone')
+        }
+
+        if validate_member(member_data):
+            update_record('members.json', 'email', email, member_data)
+            flash('Member updated successfully!', 'success')
+            return redirect(url_for('members'))
+        else:
+            flash('Invalid member data!', 'error')
+
+    member = get_record('members.json', 'email', email)
+    if not member:
+        flash('Member not found!', 'error')
+        return redirect(url_for('members'))
+
+    return render_template('edit_member.html', member=member)
+
+@app.route('/members/<email>/delete')
+def delete_member(email):
+    delete_record('members.json', 'email', email)
+    flash('Member deleted successfully!', 'success')
+    return redirect(url_for('members'))
+
 
 @app.route('/transactions', methods=['GET', 'POST'])
 def transactions():
@@ -191,6 +254,17 @@ def transactions():
                          transactions=transactions,
                          books=books,
                          members=members)
+
+@app.route('/transactions/<int:id>/delete')
+def delete_transaction(id):
+    transactions = load_data('transactions.json')
+    if 0 <= id < len(transactions):
+        transactions.pop(id)
+        save_data('transactions.json', transactions)
+        flash('Transaction deleted successfully!', 'success')
+    else:
+        flash('Transaction not found!', 'error')
+    return redirect(url_for('transactions'))
 
 @app.route('/dashboard')
 def dashboard():
