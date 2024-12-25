@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">New Transaction</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="book_isbn" class="form-label">Book ISBN</label>
+                        <select class="form-select" id="book_isbn" name="book_isbn" required>
+                            {% for book in books %}
+                            <option value="{{ book.isbn }}">{{ book.title }} ({{ book.isbn }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="member_email" class="form-label">Member Email</label>
+                        <select class="form-select" id="member_email" name="member_email" required>
+                            {% for member in members %}
+                            <option value="{{ member.email }}">{{ member.name }} ({{ member.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Transaction Type</label>
+                        <select class="form-select" id="type" name="type" required>
+                            <option value="borrow">Borrow</option>
+                            <option value="return">Return</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date" name="date" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Record Transaction</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <h3>Transaction History</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Book ISBN</th>
+                    <th>Member Email</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>{{ transaction.book_isbn }}</td>
+                    <td>{{ transaction.member_email }}</td>
+                    <td>{{ transaction.type }}</td>
+                    <td>{{ transaction.date }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
