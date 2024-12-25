@@ -2,7 +2,8 @@ import os
 import logging
 import csv
 from io import StringIO, BytesIO
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file, session
+from flask_wtf.csrf import CSRFProtect
 from utils import (
     load_data,
     save_data,
@@ -15,6 +16,7 @@ from utils import (
 )
 from collections import defaultdict
 from datetime import datetime
+import bleach
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
@@ -25,46 +27,92 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = "library_management_secret_key"
+# Use environment variable for secret key with a secure fallback
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(32))
+# Enable CSRF protection
+csrf = CSRFProtect(app)
 
-# Ensure data directory exists
-os.makedirs("data", exist_ok=True)
+# Rate limiting configuration
+RATE_LIMIT = {
+    'window': 60,  # 60 seconds
+    'max_requests': 100  # Maximum requests per window
+}
+request_history = defaultdict(list)
+
+# Ensure data directory exists with proper permissions
+data_dir = "data"
+os.makedirs(data_dir, mode=0o750, exist_ok=True)
+
+def rate_limit_check():
+    """Check if the request is within rate limits"""
+    client_ip = request.remote_addr
+    current_time = datetime.now().timestamp()
+
+    # Clean old requests
+    request_history[client_ip] = [
+        t for t in request_history[client_ip]
+        if current_time - t < RATE_LIMIT['window']
+    ]
+
+    # Check rate limit
+    if len(request_history[client_ip]) >= RATE_LIMIT['max_requests']:
+        return False
+
+    request_history[client_ip].append(current_time)
+    return True
+
+@app.before_request
+def before_request():
+    if not rate_limit_check():
+        return 'Too many requests', 429
+
+def sanitize_input(data):
+    """Sanitize user input"""
+    if isinstance(data, str):
+        return bleach.clean(data.strip())
+    elif isinstance(data, dict):
+        return {k: sanitize_input(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [sanitize_input(v) for v in data]
+    return data
 
 def generate_pdf_report(data, headers, title):
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    elements = []
+    """Generate PDF report with improved error handling"""
+    try:
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        elements = []
 
-    # Add title
-    styles = getSampleStyleSheet()
-    elements.append(Paragraph(title, styles['Heading1']))
+        styles = getSampleStyleSheet()
+        elements.append(Paragraph(bleach.clean(title), styles['Heading1']))
 
-    # Convert data to table format
-    table_data = [headers]
-    for item in data:
-        row = [str(item.get(header.lower().replace(' ', '_'), '')) for header in headers]
-        table_data.append(row)
+        table_data = [headers]
+        for item in data:
+            row = [str(sanitize_input(item.get(header.lower().replace(' ', '_'), ''))) 
+                  for header in headers]
+            table_data.append(row)
 
-    # Create table
-    table = Table(table_data)
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 14),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 12),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    elements.append(table)
+        table = Table(table_data)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 14),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        elements.append(table)
 
-    # Build PDF
-    doc.build(elements)
-    buffer.seek(0)
-    return buffer
+        doc.build(elements)
+        buffer.seek(0)
+        return buffer
+    except Exception as e:
+        logger.error(f"Error generating PDF: {str(e)}")
+        return None
 
 @app.route('/export/<data_type>/<format>')
 def export_data(data_type, format):
@@ -114,12 +162,16 @@ def export_data(data_type, format):
 
         pdf_buffer = generate_pdf_report(data, headers, f'Library {data_type.title()} Report')
 
-        return send_file(
-            pdf_buffer,
-            mimetype='application/pdf',
-            as_attachment=True,
-            download_name=f'{data_type}_{datetime.now().strftime("%Y%m%d")}.pdf'
-        )
+        if pdf_buffer:
+            return send_file(
+                pdf_buffer,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=f'{data_type}_{datetime.now().strftime("%Y%m%d")}.pdf'
+            )
+        else:
+            flash('Error generating PDF report', 'error')
+            return redirect(url_for('dashboard'))
 
     flash('Invalid export format', 'error')
     return redirect(url_for('dashboard'))
@@ -132,10 +184,10 @@ def index():
 def books():
     if request.method == 'POST':
         book_data = {
-            'title': request.form.get('title'),
-            'author': request.form.get('author'),
-            'isbn': request.form.get('isbn'),
-            'quantity': int(request.form.get('quantity', 1))
+            'title': sanitize_input(request.form.get('title')),
+            'author': sanitize_input(request.form.get('author')),
+            'isbn': sanitize_input(request.form.get('isbn')),
+            'quantity': int(sanitize_input(request.form.get('quantity', 1)))
         }
         
         if validate_book(book_data):
@@ -153,10 +205,10 @@ def books():
 def edit_book(isbn):
     if request.method == 'POST':
         book_data = {
-            'title': request.form.get('title'),
-            'author': request.form.get('author'),
-            'isbn': request.form.get('isbn'),
-            'quantity': int(request.form.get('quantity', 1))
+            'title': sanitize_input(request.form.get('title')),
+            'author': sanitize_input(request.form.get('author')),
+            'isbn': sanitize_input(request.form.get('isbn')),
+            'quantity': int(sanitize_input(request.form.get('quantity', 1)))
         }
 
         if validate_book(book_data):
@@ -183,9 +235,9 @@ def delete_book(isbn):
 def members():
     if request.method == 'POST':
         member_data = {
-            'name': request.form.get('name'),
-            'email': request.form.get('email'),
-            'phone': request.form.get('phone')
+            'name': sanitize_input(request.form.get('name')),
+            'email': sanitize_input(request.form.get('email')),
+            'phone': sanitize_input(request.form.get('phone'))
         }
         
         if validate_member(member_data):
@@ -203,9 +255,9 @@ def members():
 def edit_member(email):
     if request.method == 'POST':
         member_data = {
-            'name': request.form.get('name'),
-            'email': request.form.get('email'),
-            'phone': request.form.get('phone')
+            'name': sanitize_input(request.form.get('name')),
+            'email': sanitize_input(request.form.get('email')),
+            'phone': sanitize_input(request.form.get('phone'))
         }
 
         if validate_member(member_data):
@@ -233,10 +285,10 @@ def delete_member(email):
 def transactions():
     if request.method == 'POST':
         transaction_data = {
-            'book_isbn': request.form.get('book_isbn'),
-            'member_email': request.form.get('member_email'),
-            'type': request.form.get('type'),  # 'borrow' or 'return'
-            'date': request.form.get('date')
+            'book_isbn': sanitize_input(request.form.get('book_isbn')),
+            'member_email': sanitize_input(request.form.get('member_email')),
+            'type': sanitize_input(request.form.get('type')),  # 'borrow' or 'return'
+            'date': sanitize_input(request.form.get('date'))
         }
         
         if validate_transaction(transaction_data):
@@ -303,4 +355,4 @@ def dashboard():
     return render_template('dashboard.html', stats=stats, borrowed_books=currently_borrowed)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
