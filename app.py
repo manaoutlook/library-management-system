@@ -126,7 +126,7 @@ def export_data(data_type, format):
 
 @app.route('/')
 def index():
-    return redirect(url_for('books'))
+    return redirect(url_for('dashboard'))
 
 @app.route('/books', methods=['GET', 'POST'])
 def books():
