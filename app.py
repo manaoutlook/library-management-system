@@ -10,6 +10,7 @@ from utils import (
     validate_book,
     validate_member,
     validate_transaction,
+    validate_reservation,  # Added this import
     update_record,
     delete_record,
     get_record
