@@ -2,17 +2,21 @@ import os
 import logging
 from flask import Flask
 from datetime import timedelta
-from extensions import db, login_manager
-from flask_migrate import Migrate
+from extensions import db, login_manager, migrate
+from models import User
 
-# Configure logging with more detail
+# Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
 def create_app():
+    """Application factory function"""
     logger.info("Starting application initialization")
     app = Flask(__name__)
 
@@ -40,36 +44,39 @@ def create_app():
         app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 
         # Setup secret key
-        app.secret_key = os.environ.get("FLASK_SECRET_KEY") or os.urandom(32)
+        app.secret_key = os.environ.get("FLASK_SECRET_KEY") or os.urandom(24)
 
+        # Initialize extensions
         logger.info("Initializing Flask extensions")
-        # Initialize extensions with the app
         db.init_app(app)
         login_manager.init_app(app)
-        migrate = Migrate(app, db)
 
+        # Import routes before initializing database
+        from routes.auth import auth_bp
+        from routes.main import main_bp
+
+        app.register_blueprint(auth_bp)
+        app.register_blueprint(main_bp)
+
+        # Setup user loader
         @login_manager.user_loader
         def load_user(user_id):
-            from models import User
             try:
                 return User.query.get(int(user_id))
             except Exception as e:
                 logger.error(f"Error loading user: {str(e)}")
                 return None
 
-        # Register blueprints and initialize database
+        # Initialize database and migrations
         with app.app_context():
-            logger.info("Setting up application context")
-            # Import routes
-            from routes.auth import auth_bp
-            from routes.main import main_bp
-            from models import User
-
-            # Register blueprints
-            app.register_blueprint(auth_bp)
-            app.register_blueprint(main_bp)
-
             try:
+                logger.info("Testing database connection")
+                db.engine.connect()
+                logger.info("Database connection successful")
+
+                logger.info("Initializing database migrations")
+                migrate.init_app(app, db)
+
                 logger.info("Creating database tables")
                 db.create_all()
 
