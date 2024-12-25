@@ -251,7 +251,7 @@ def system_users():
         else:
             flash('Failed to add user. Username or email already exists.', 'error')
 
-    users = get_system_users() # Using the correct function from auth.py
+    users = get_system_users()  # Using the function from auth.py
     return render_template('system_users.html', users=users, form=form)
 
 @app.route('/system-users/<user_id>/edit', methods=['POST'])
