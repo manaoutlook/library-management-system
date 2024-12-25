@@ -40,32 +40,32 @@
         <!-- Sidebar -->
         <div class="sidebar py-3">
             <div class="px-3 mb-4">
-                <a class="text-decoration-none fs-4 text-white" href="/">
+                <a class="text-decoration-none fs-4 text-white" href="{{ url_for('main.index') }}">
                     <i data-feather="book"></i>
                     Library MS
                 </a>
             </div>
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' }}" href="{{ url_for('main.dashboard') }}">
                         <i data-feather="grid"></i>
                         Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.endpoint == 'books' }}" href="{{ url_for('books') }}">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'main.books' }}" href="{{ url_for('main.books') }}">
                         <i data-feather="book-open"></i>
                         Books
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.endpoint == 'members' }}" href="{{ url_for('members') }}">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'main.members' }}" href="{{ url_for('main.members') }}">
                         <i data-feather="users"></i>
                         Members
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.endpoint == 'transactions' }}" href="{{ url_for('transactions') }}">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'main.transactions' }}" href="{{ url_for('main.transactions') }}">
                         <i data-feather="repeat"></i>
                         Transactions
                     </a>
@@ -78,7 +78,16 @@
             <!-- Header -->
             <header class="app-header px-4 py-3">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">{{ request.endpoint.title() if request.endpoint else 'Dashboard' }}</h4>
+                    <h4 class="mb-0">{{ request.endpoint.replace('main.', '').title() if request.endpoint else 'Dashboard' }}</h4>
+                    {% if current_user.is_authenticated %}
+                    <div class="d-flex align-items-center gap-3">
+                        <span>{{ current_user.username }}</span>
+                        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm">
+                            <i data-feather="log-out"></i>
+                            Logout
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </header>
 
