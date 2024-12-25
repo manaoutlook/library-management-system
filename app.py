@@ -10,7 +10,7 @@ from utils import (
     validate_book,
     validate_member,
     validate_transaction,
-    validate_reservation,  # Added this import
+    validate_reservation,
     update_record,
     delete_record,
     get_record
@@ -520,7 +520,7 @@ def reservations():
             'due_date': due_date
         }
 
-        if validate_reservation(reservation_data): #Assumed validate_reservation exists in utils.py
+        if validate_reservation(reservation_data):
             reservations = load_data('reservations.json')
             # Add ID to reservation
             reservation_data['id'] = str(len(reservations) + 1)
@@ -528,7 +528,7 @@ def reservations():
             save_data('reservations.json', reservations)
             flash('Reservation added successfully!', 'success')
         else:
-            flash('Invalid reservation data!', 'error')
+            flash('Invalid reservation data! Please check all fields are filled correctly.', 'error')
 
     reservations = load_data('reservations.json')
     books = load_data('books.json')
