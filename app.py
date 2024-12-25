@@ -326,7 +326,8 @@ def dashboard():
 @login_required
 @requires_role('admin', 'librarian')
 def books():
-    if request.method == 'POST':
+    form = FlaskForm()  # Initialize form for CSRF protection
+    if request.method == 'POST' and form.validate_on_submit():
         book_data = {
             'title': sanitize_input(request.form.get('title')),
             'author': sanitize_input(request.form.get('author')),
@@ -343,7 +344,7 @@ def books():
             flash('Invalid book data!', 'error')
 
     books = load_data('books.json')
-    return render_template('books.html', books=books)
+    return render_template('books.html', books=books, form=form)
 
 @app.route('/books/<isbn>/edit', methods=['GET', 'POST'])
 @login_required
