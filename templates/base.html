@@ -73,6 +73,14 @@
                     </a>
                 </li>
                 {% endif %}
+                {% if current_user.role == 'admin' %}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'system_users' }}" href="{{ url_for('system_users') }}">
+                        <i data-feather="user-check"></i>
+                        System Users
+                    </a>
+                </li>
+                {% endif %}
             </ul>
         </div>
         {% endif %}

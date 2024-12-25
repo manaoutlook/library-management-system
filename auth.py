@@ -2,7 +2,7 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 import os
-from typing import Optional
+from typing import Optional, List, Dict
 import logging
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ def init_user_storage():
         )
         logger.info("Superuser account created")
 
-def load_users():
+def load_users() -> Dict:
     """Load users from the JSON file"""
     try:
         with open('data/users.json', 'r') as f:
@@ -59,7 +59,7 @@ def load_users():
         logger.error(f"Error loading users: {e}")
         return {}
 
-def save_users(users):
+def save_users(users: Dict) -> bool:
     """Save users to the JSON file"""
     try:
         with open('data/users.json', 'w') as f:
@@ -68,6 +68,58 @@ def save_users(users):
     except Exception as e:
         logger.error(f"Error saving users: {e}")
         return False
+
+def get_system_users() -> List[Dict]:
+    """Get all system users (admin, librarian, staff)"""
+    users = load_users()
+    system_users = []
+    for user_id, user_data in users.items():
+        if user_data['role'] in ['admin', 'librarian', 'staff']:
+            system_users.append({
+                'id': user_id,
+                **user_data
+            })
+    return system_users
+
+def get_user_by_id(user_id: str) -> Optional[Dict]:
+    """Get user by ID"""
+    users = load_users()
+    user_data = users.get(user_id)
+    if user_data:
+        return {'id': user_id, **user_data}
+    return None
+
+def update_user(user_id: str, username: str, email: str, role: str, password: Optional[str] = None) -> bool:
+    """Update user details"""
+    users = load_users()
+    if user_id not in users:
+        return False
+
+    # Check if email is being changed and if it's already taken by another user
+    if email != users[user_id]['email']:
+        for uid, udata in users.items():
+            if uid != user_id and udata['email'] == email:
+                return False
+
+    users[user_id].update({
+        'username': username,
+        'email': email,
+        'role': role
+    })
+
+    if password:
+        users[user_id]['password'] = generate_password_hash(password)
+
+    return save_users(users)
+
+def delete_user(user_id: str) -> bool:
+    """Delete a user"""
+    users = load_users()
+    if user_id not in users or users[user_id]['email'] == 'admin@library.com':
+        return False
+
+    del users[user_id]
+    return save_users(users)
 
 def register_user(username: str, email: str, password: str, role: str = 'user') -> bool:
     """Register a new user"""

@@ -233,6 +233,54 @@ def logout():
     flash('Logged out successfully.', 'success')
     return redirect(url_for('login'))
 
+# New routes for system users management
+@app.route('/system-users', methods=['GET', 'POST'])
+@login_required
+@requires_role('admin')
+def system_users():
+    form = FlaskForm()  # For CSRF protection
+    if request.method == 'POST':
+        username = sanitize_input(request.form.get('username'))
+        email = sanitize_input(request.form.get('email'))
+        password = request.form.get('password')
+        role = sanitize_input(request.form.get('role'))
+
+        if register_user(username, email, password, role):
+            flash('User added successfully!', 'success')
+        else:
+            flash('Failed to add user. Username or email already exists.', 'error')
+
+    users = User.get_all() # Assuming User class has a get_all method.  This needs to be added to auth.py
+    return render_template('system_users.html', users=users, form=form)
+
+
+@app.route('/system-users/<user_id>/edit', methods=['POST'])
+@login_required
+@requires_role('admin')
+def edit_system_user(user_id):
+    username = sanitize_input(request.form.get('username'))
+    email = sanitize_input(request.form.get('email'))
+    role = sanitize_input(request.form.get('role'))
+    password = request.form.get('password')
+
+    if User.update(user_id, username, email, role, password): #Assumes update method exists in User class. Needs to be added to auth.py
+        flash('User updated successfully!', 'success')
+    else:
+        flash('Failed to update user.', 'error')
+
+    return redirect(url_for('system_users'))
+
+@app.route('/system-users/<user_id>/delete')
+@login_required
+@requires_role('admin')
+def delete_system_user(user_id):
+    if User.delete(user_id): #Assumes delete method exists in User class. Needs to be added to auth.py
+        flash('User deleted successfully!', 'success')
+    else:
+        flash('Failed to delete user.', 'error')
+    return redirect(url_for('system_users'))
+
+
 # Protected routes
 @app.route('/')
 def index():
@@ -386,7 +434,6 @@ def delete_member(email):
     delete_record('members.json', 'email', email)
     flash('Member deleted successfully!', 'success')
     return redirect(url_for('members'))
-
 
 @app.route('/transactions', methods=['GET', 'POST'])
 @login_required
