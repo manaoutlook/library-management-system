@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h5 class="card-title">Total Books</h5>
+                <p class="card-text display-4">{{ stats.total_books }}</p>
+                <p class="card-text text-muted">{{ stats.unique_titles }} unique titles</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h5 class="card-title">Total Members</h5>
+                <p class="card-text display-4">{{ stats.total_members }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Currently Borrowed Books</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Author</th>
+                                <th>Borrowed Copies</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for book in borrowed_books %}
+                            <tr>
+                                <td>{{ book.title }}</td>
+                                <td>{{ book.author }}</td>
+                                <td>{{ book.count }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% if not borrowed_books %}
+                            <tr>
+                                <td colspan="3" class="text-center">No books currently borrowed</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Recent Transactions</h5>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Book ISBN</th>
+                                <th>Member Email</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in stats.recent_transactions %}
+                            <tr>
+                                <td>{{ transaction.date }}</td>
+                                <td>
+                                    <span class="badge {% if transaction.type == 'borrow' %}bg-primary{% else %}bg-success{% endif %}">
+                                        {{ transaction.type }}
+                                    </span>
+                                </td>
+                                <td>{{ transaction.book_isbn }}</td>
+                                <td>{{ transaction.member_email }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% if not stats.recent_transactions %}
+                            <tr>
+                                <td colspan="4" class="text-center">No recent transactions</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -8,6 +8,8 @@ from utils import (
     validate_member,
     validate_transaction
 )
+from collections import defaultdict
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -89,3 +91,39 @@ def transactions():
                          transactions=transactions,
                          books=books,
                          members=members)
+
+@app.route('/dashboard')
+def dashboard():
+    books = load_data('books.json')
+    members = load_data('members.json')
+    transactions = load_data('transactions.json')
+
+    # Calculate statistics
+    stats = {
+        'total_books': sum(book['quantity'] for book in books),
+        'unique_titles': len(set(book['title'] for book in books)), # Corrected unique titles count
+        'total_members': len(members),
+        'recent_transactions': sorted(transactions, key=lambda x: x['date'], reverse=True)[:5]
+    }
+
+    # Calculate books currently borrowed
+    borrowed_books = defaultdict(int)
+    for trans in transactions:
+        if trans['type'] == 'borrow':
+            borrowed_books[trans['book_isbn']] += 1
+        elif trans['type'] == 'return':
+            borrowed_books[trans['book_isbn']] -= 1
+
+    # Get book details for borrowed books
+    books_dict = {book['isbn']: book for book in books}
+    currently_borrowed = []
+    for isbn, count in borrowed_books.items():
+        if count > 0 and isbn in books_dict:
+            book = books_dict[isbn]
+            currently_borrowed.append({
+                'title': book['title'],
+                'author': book['author'],
+                'count': count
+            })
+
+    return render_template('dashboard.html', stats=stats, borrowed_books=currently_borrowed)

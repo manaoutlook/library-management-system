@@ -1,0 +1,14 @@
+[
+    {
+        "book_isbn": "309480234023",
+        "member_email": "me@kavin.one",
+        "type": "borrow",
+        "date": "2024-12-25"
+    },
+    {
+        "book_isbn": "78432872473247",
+        "member_email": "suhee@suhee.xyz",
+        "type": "borrow",
+        "date": "2024-12-25"
+    }
+]
