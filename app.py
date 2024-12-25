@@ -24,7 +24,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, validators
-from auth import User, init_user_storage, register_user, authenticate_user, requires_role
+from auth import User, init_user_storage, register_user, authenticate_user, requires_role, get_system_users, update_user, delete_user
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -250,9 +250,8 @@ def system_users():
         else:
             flash('Failed to add user. Username or email already exists.', 'error')
 
-    users = User.get_all() # Assuming User class has a get_all method.  This needs to be added to auth.py
+    users = get_system_users() # Using the correct function from auth.py
     return render_template('system_users.html', users=users, form=form)
-
 
 @app.route('/system-users/<user_id>/edit', methods=['POST'])
 @login_required
@@ -263,7 +262,7 @@ def edit_system_user(user_id):
     role = sanitize_input(request.form.get('role'))
     password = request.form.get('password')
 
-    if User.update(user_id, username, email, role, password): #Assumes update method exists in User class. Needs to be added to auth.py
+    if update_user(user_id, username, email, role, password): # Using the correct function from auth.py
         flash('User updated successfully!', 'success')
     else:
         flash('Failed to update user.', 'error')
@@ -274,12 +273,11 @@ def edit_system_user(user_id):
 @login_required
 @requires_role('admin')
 def delete_system_user(user_id):
-    if User.delete(user_id): #Assumes delete method exists in User class. Needs to be added to auth.py
+    if delete_user(user_id): # Using the correct function from auth.py
         flash('User deleted successfully!', 'success')
     else:
         flash('Failed to delete user.', 'error')
     return redirect(url_for('system_users'))
-
 
 # Protected routes
 @app.route('/')
