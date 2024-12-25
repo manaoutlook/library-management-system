@@ -180,3 +180,41 @@ def get_record(filename, identifier_field, identifier_value):
         if item.get(identifier_field) == identifier_value:
             return item
     return None
+
+def validate_reservation(reservation):
+    """Validate reservation data with improved checks"""
+    required_fields = ['book_isbn', 'member_email', 'status', 'reserved_date', 'due_date']
+
+    try:
+        # Check required fields
+        if not all(field in reservation and reservation[field] for field in required_fields):
+            return False
+
+        # Validate ISBN and email
+        if not is_valid_isbn(reservation['book_isbn']):
+            return False
+
+        try:
+            validate_email(reservation['member_email'])
+        except EmailNotValidError:
+            return False
+
+        # Validate status
+        if reservation['status'] not in ['active', 'cancelled', 'completed']:
+            return False
+
+        # Validate dates
+        try:
+            reserved_date = datetime.strptime(reservation['reserved_date'], '%Y-%m-%d')
+            due_date = datetime.strptime(reservation['due_date'], '%Y-%m-%d')
+
+            # Due date should be after reserved date
+            if due_date <= reserved_date:
+                return False
+
+        except ValueError:
+            return False
+
+        return True
+    except Exception:
+        return False

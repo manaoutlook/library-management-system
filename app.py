@@ -474,5 +474,90 @@ def delete_transaction(id):
         flash('Transaction not found!', 'error')
     return redirect(url_for('transactions'))
 
+@app.route('/reservations', methods=['GET', 'POST'])
+@login_required
+@requires_role('admin', 'librarian')
+def reservations():
+    form = FlaskForm()  # For CSRF protection
+    if request.method == 'POST':
+        # Load existing data
+        books = load_data('books.json')
+        members = load_data('members.json')
+
+        # Get form data
+        book_isbn = sanitize_input(request.form.get('book_isbn'))
+        member_email = sanitize_input(request.form.get('member_email'))
+        due_date = sanitize_input(request.form.get('due_date'))
+
+        # Validate book and member exist
+        book = next((b for b in books if b['isbn'] == book_isbn), None)
+        member = next((m for m in members if m['email'] == member_email), None)
+
+        if not book or not member:
+            flash('Invalid book or member selected.', 'error')
+            return redirect(url_for('reservations'))
+
+        # Create reservation data
+        reservation_data = {
+            'book_isbn': book_isbn,
+            'book_title': book['title'],
+            'member_email': member_email,
+            'member_name': member['name'],
+            'status': 'active',
+            'reserved_date': datetime.now().strftime('%Y-%m-%d'),
+            'due_date': due_date
+        }
+
+        if validate_reservation(reservation_data): #Assumed validate_reservation exists in utils.py
+            reservations = load_data('reservations.json')
+            # Add ID to reservation
+            reservation_data['id'] = str(len(reservations) + 1)
+            reservations.append(reservation_data)
+            save_data('reservations.json', reservations)
+            flash('Reservation added successfully!', 'success')
+        else:
+            flash('Invalid reservation data!', 'error')
+
+    reservations = load_data('reservations.json')
+    books = load_data('books.json')
+    members = load_data('members.json')
+    return render_template('reservations.html', 
+                         reservations=reservations,
+                         books=books,
+                         members=members,
+                         form=form)
+
+@app.route('/reservations/<reservation_id>/edit', methods=['POST'])
+@login_required
+@requires_role('admin', 'librarian')
+def edit_reservation(reservation_id):
+    status = sanitize_input(request.form.get('status'))
+    due_date = sanitize_input(request.form.get('due_date'))
+
+    reservations = load_data('reservations.json')
+    for reservation in reservations:
+        if reservation['id'] == reservation_id:
+            reservation['status'] = status
+            reservation['due_date'] = due_date
+            break
+
+    save_data('reservations.json', reservations)
+    flash('Reservation updated successfully!', 'success')
+    return redirect(url_for('reservations'))
+
+@app.route('/reservations/<reservation_id>/cancel')
+@login_required
+@requires_role('admin', 'librarian')
+def cancel_reservation(reservation_id):
+    reservations = load_data('reservations.json')
+    for reservation in reservations:
+        if reservation['id'] == reservation_id:
+            reservation['status'] = 'cancelled'
+            break
+
+    save_data('reservations.json', reservations)
+    flash('Reservation cancelled successfully!', 'success')
+    return redirect(url_for('reservations'))
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

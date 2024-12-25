@@ -4,5 +4,23 @@
         "email": "admin@library.com",
         "password": "scrypt:32768:8:1$MyXmkwXLFdIJrWnr$7775893b70755f149dbe3bbb8bf9d4d3df77e913f480437766fd18152c538f32734edccbe4e27acca0dc6974850e2b9f4610dbaefedaed4c5d064570ed892b97",
         "role": "admin"
+    },
+    "2": {
+        "username": "Admin 21",
+        "email": "admin2@library.com",
+        "password": "scrypt:32768:8:1$m8rqAmKS5nSt5OgC$e59340222c7a97972852b9b1c23abc862306d0c8a79b8cfb3818e470f4a4109aa673576c80217898f239d3bb3718a92bba69ab618b0fb722dc0a13cc0d7de119",
+        "role": "admin"
+    },
+    "3": {
+        "username": "staff1",
+        "email": "staff1@library.com",
+        "password": "scrypt:32768:8:1$uEdubkAGdfoKQvQD$510906b10f92d7f1ba181d0a28a7737fce415afcdc3184d287f7b472b37bde4097b366dc23d25789b7137428ff80c4f9a2d85233a78d3f50a5de9be9a3369d80",
+        "role": "staff"
+    },
+    "4": {
+        "username": "librarian1",
+        "email": "librarian1@library.com",
+        "password": "scrypt:32768:8:1$IK2dQ6gazl6E5So2$e9c3244f48f494bc34e04f08728a210d7f6f60779b64156eaf8a29ba804325a618843e409f97a647666695fb608be5945991141b6949ab70bd6a62fabe72db77",
+        "role": "librarian"
     }
 }

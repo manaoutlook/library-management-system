@@ -72,6 +72,12 @@
                         Transactions
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'reservations' }}" href="{{ url_for('reservations') }}">
+                        <i data-feather="calendar"></i>
+                        Reservations
+                    </a>
+                </li>
                 {% endif %}
                 {% if current_user.role == 'admin' %}
                 <li class="nav-item">
