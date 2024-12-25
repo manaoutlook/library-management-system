@@ -528,7 +528,7 @@ def reservations():
             save_data('reservations.json', reservations)
             flash('Reservation added successfully!', 'success')
         else:
-            flash('Invalid reservation data! Please check all fields are filled correctly.', 'error')
+            flash('Please check the due date and ensure all fields are filled correctly.', 'error')
 
     reservations = load_data('reservations.json')
     books = load_data('books.json')
