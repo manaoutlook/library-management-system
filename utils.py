@@ -82,7 +82,7 @@ def is_valid_isbn(isbn):
     return False
 
 def validate_book(book):
-    """Validate book data with improved error handling"""
+    """Validate book data with basic checks"""
     required_fields = ['title', 'author', 'isbn', 'quantity']
     error_messages = []
 
@@ -103,13 +103,8 @@ def validate_book(book):
             error_messages.append("Invalid quantity value")
             return False
 
-        # Validate ISBN
-        if not is_valid_isbn(book['isbn']):
-            error_messages.append("Invalid ISBN format")
-            return False
-
         # Validate string fields
-        for field in ['title', 'author', 'isbn']:
+        for field in ['title', 'author']:
             if not isinstance(book[field], str) or not book[field].strip():
                 error_messages.append(f"Invalid {field}")
                 return False
