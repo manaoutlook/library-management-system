@@ -6,11 +6,8 @@ from datetime import datetime
 from email_validator import validate_email, EmailNotValidError
 import logging
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.ERROR) #Added for logging
+
 
 def secure_filename(filename):
     """Ensure filename is secure and within data directory"""
@@ -34,7 +31,7 @@ def load_data(filename):
                 fcntl.flock(f.fileno(), fcntl.LOCK_UN)
         return data
     except (json.JSONDecodeError, IOError) as e:
-        logger.error(f"Error loading data from {filename}: {str(e)}")
+        logging.error(f"Error loading data from {filename}: {str(e)}")
         return []
 
 def save_data(filename, data):
@@ -49,7 +46,7 @@ def save_data(filename, data):
                 fcntl.flock(f.fileno(), fcntl.LOCK_UN)
         return True
     except IOError as e:
-        logger.error(f"Error saving data to {filename}: {str(e)}")
+        logging.error(f"Error saving data to {filename}: {str(e)}")
         return False
 
 def is_valid_isbn(isbn):
