@@ -86,6 +86,9 @@
                                 <input type="text" class="form-control" name="repo_name" placeholder="Repository Name" value="library-management-system">
                                 <button class="btn btn-primary" type="submit">Initialize</button>
                             </div>
+                            <div class="text-center mb-2 d-none text-primary fw-bold" id="initMessage">
+                                GitHub initialization is in progress. Please wait...
+                            </div>
                             <div class="progress d-none" id="initProgress">
                                 <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
                             </div>
@@ -99,6 +102,9 @@
                                 <input type="text" class="form-control" name="repo_name" placeholder="Repository Name" value="library-management-system">
                                 <input type="text" class="form-control" name="commit_message" placeholder="Commit Message" value="Update from Library Management System">
                                 <button class="btn btn-success" type="submit">Sync</button>
+                            </div>
+                            <div class="text-center mb-2 d-none text-success fw-bold" id="syncMessage">
+                                GitHub sync is in progress. Please wait...
                             </div>
                             <div class="progress d-none" id="syncProgress">
                                 <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 100%"></div>
@@ -161,10 +167,12 @@
 <script>
 document.getElementById('initRepoForm').addEventListener('submit', function() {
     document.getElementById('initProgress').classList.remove('d-none');
+    document.getElementById('initMessage').classList.remove('d-none');
 });
 
 document.getElementById('syncForm').addEventListener('submit', function() {
     document.getElementById('syncProgress').classList.remove('d-none');
+    document.getElementById('syncMessage').classList.remove('d-none');
 });
 </script>
 {% endblock %}
