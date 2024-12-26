@@ -70,7 +70,6 @@
     </div>
 </div>
 
-<!-- GitHub Integration Section -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card rounded-4 shadow-sm">
@@ -81,22 +80,28 @@
                 <div class="row">
                     <div class="col-md-6">
                         <h6>Initialize Repository</h6>
-                        <form method="POST" action="{{ url_for('init_github_repo') }}">
+                        <form method="POST" action="{{ url_for('init_github_repo') }}" id="initRepoForm">
                             {{ form.csrf_token }}
                             <div class="input-group mb-3">
                                 <input type="text" class="form-control" name="repo_name" placeholder="Repository Name" value="library-management-system">
                                 <button class="btn btn-primary" type="submit">Initialize</button>
                             </div>
+                            <div class="progress d-none" id="initProgress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                            </div>
                         </form>
                     </div>
                     <div class="col-md-6">
                         <h6>Sync Code Changes</h6>
-                        <form method="POST" action="{{ url_for('sync_to_github') }}">
+                        <form method="POST" action="{{ url_for('sync_to_github') }}" id="syncForm">
                             {{ form.csrf_token }}
-                            <div class="input-group">
+                            <div class="input-group mb-3">
                                 <input type="text" class="form-control" name="repo_name" placeholder="Repository Name" value="library-management-system">
                                 <input type="text" class="form-control" name="commit_message" placeholder="Commit Message" value="Update from Library Management System">
                                 <button class="btn btn-success" type="submit">Sync</button>
+                            </div>
+                            <div class="progress d-none" id="syncProgress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 100%"></div>
                             </div>
                         </form>
                     </div>
@@ -152,4 +157,14 @@
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('initRepoForm').addEventListener('submit', function() {
+    document.getElementById('initProgress').classList.remove('d-none');
+});
+
+document.getElementById('syncForm').addEventListener('submit', function() {
+    document.getElementById('syncProgress').classList.remove('d-none');
+});
+</script>
 {% endblock %}
