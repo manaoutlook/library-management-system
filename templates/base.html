@@ -54,6 +54,29 @@
         .toastify.info {
             background: linear-gradient(to right, #17a2b8, #138496);
         }
+        /* Form validation styles */
+        .form-control.is-invalid,
+        .form-select.is-invalid {
+            border-color: var(--bs-danger);
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+        .invalid-feedback {
+            display: none;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875em;
+            color: var(--bs-danger);
+        }
+        .was-validated .form-control:invalid ~ .invalid-feedback,
+        .was-validated .form-select:invalid ~ .invalid-feedback,
+        .form-control.is-invalid ~ .invalid-feedback,
+        .form-select.is-invalid ~ .invalid-feedback {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -85,6 +108,12 @@
                     <a class="nav-link {{ 'active' if request.endpoint == 'members' }}" href="{{ url_for('members') }}">
                         <i data-feather="users"></i>
                         Members
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'reports' }}" href="{{ url_for('reports') }}">
+                        <i data-feather="bar-chart-2"></i>
+                        Reports & Analytics
                     </a>
                 </li>
                 <li class="nav-item">
@@ -142,6 +171,48 @@
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script>
         feather.replace();
+
+        // Form validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const forms = document.querySelectorAll('form');
+
+            forms.forEach(form => {
+                // Add validation classes on form submission
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                });
+
+                // Real-time validation
+                const inputs = form.querySelectorAll('input, select');
+                inputs.forEach(input => {
+                    input.addEventListener('blur', function() {
+                        validateField(input);
+                    });
+                    input.addEventListener('input', function() {
+                        validateField(input);
+                    });
+                });
+            });
+        });
+
+        function validateField(field) {
+            const isValid = field.checkValidity();
+            field.classList.toggle('is-invalid', !isValid);
+
+            // Find or create feedback element
+            let feedback = field.nextElementSibling;
+            if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+                feedback = document.createElement('div');
+                feedback.className = 'invalid-feedback';
+                field.parentNode.insertBefore(feedback, field.nextSibling);
+            }
+
+            feedback.textContent = field.validationMessage || 'This field is required';
+        }
 
         // Handle flash messages with Toastify
         {% with messages = get_flashed_messages(with_categories=true) %}
