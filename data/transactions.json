@@ -1,14 +1,47 @@
 [
     {
-        "book_isbn": "309480234023",
+        "id": 1,
+        "book_isbn": "78432872473247",
+        "book_title": "Power of Subconcious Mind",
         "member_email": "me@kavin.one",
-        "type": "borrow",
-        "date": "2024-12-25"
+        "member_name": "Kavin Thang",
+        "borrow_date": "2024-12-26",
+        "return_date": "2024-12-26"
     },
     {
-        "book_isbn": "78432872473247",
+        "id": 2,
+        "book_isbn": "309480234023",
+        "book_title": "The Secret",
+        "member_email": "me@kavin.one",
+        "member_name": "Kavin Thang",
+        "borrow_date": "2024-12-26",
+        "return_date": "2024-12-26"
+    },
+    {
+        "id": 3,
+        "book_isbn": "32409242324",
+        "book_title": "Kadal",
         "member_email": "suhee@suhee.xyz",
-        "type": "borrow",
-        "date": "2024-12-25"
+        "member_name": "Suhee",
+        "borrow_date": "2024-12-26",
+        "return_date": "2024-12-26"
+    },
+    {
+        "id": 4,
+        "book_isbn": "78432872473247",
+        "book_title": "Power of Subconcious Mind",
+        "member_email": "suhee@suhee.xyz",
+        "member_name": "Suhee",
+        "borrow_date": "2024-12-26",
+        "return_date": null
+    },
+    {
+        "id": 5,
+        "book_isbn": "309480234023",
+        "book_title": "The Secret",
+        "member_email": "suhee@suhee.xyz",
+        "member_name": "Suhee",
+        "borrow_date": "2024-12-26",
+        "return_date": null
     }
 ]
