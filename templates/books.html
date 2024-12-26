@@ -1,6 +1,53 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card rounded-4 shadow-sm">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Search Books</h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="search" class="form-label">Search</label>
+                        <input type="text" class="form-control" id="search" name="search" 
+                               value="{{ request.args.get('search', '') }}" 
+                               placeholder="Search by title, author, or ISBN">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="min_quantity" class="form-label">Min Quantity</label>
+                        <input type="number" class="form-control" id="min_quantity" name="min_quantity" 
+                               value="{{ request.args.get('min_quantity', '') }}" min="0">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="max_quantity" class="form-label">Max Quantity</label>
+                        <input type="number" class="form-control" id="max_quantity" name="max_quantity" 
+                               value="{{ request.args.get('max_quantity', '') }}" min="0">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="sort" class="form-label">Sort By</label>
+                        <select class="form-select" id="sort" name="sort">
+                            <option value="">No sorting</option>
+                            <option value="title_asc" {% if request.args.get('sort') == 'title_asc' %}selected{% endif %}>Title (A-Z)</option>
+                            <option value="title_desc" {% if request.args.get('sort') == 'title_desc' %}selected{% endif %}>Title (Z-A)</option>
+                            <option value="quantity_asc" {% if request.args.get('sort') == 'quantity_asc' %}selected{% endif %}>Quantity (Low to High)</option>
+                            <option value="quantity_desc" {% if request.args.get('sort') == 'quantity_desc' %}selected{% endif %}>Quantity (High to Low)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <div class="d-grid w-100">
+                            <button type="submit" class="btn btn-primary">
+                                <i data-feather="search" class="me-2"></i>Search
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-md-4">
         <div class="card rounded-4 shadow-sm">
@@ -34,7 +81,10 @@
     <div class="col-md-8">
         <div class="card rounded-4 shadow-sm">
             <div class="card-header">
-                <h5 class="card-title mb-0">Book Inventory</h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Book Inventory</h5>
+                    <small class="text-muted">{{ books|length }} books found</small>
+                </div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -63,7 +113,10 @@
                             {% endfor %}
                             {% if not books %}
                             <tr>
-                                <td colspan="5" class="text-center text-muted">No books available</td>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <i data-feather="book" class="mb-2" style="width: 2rem; height: 2rem;"></i>
+                                    <p class="mb-0">No books found</p>
+                                </td>
                             </tr>
                             {% endif %}
                         </tbody>
