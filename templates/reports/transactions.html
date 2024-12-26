@@ -1,0 +1,56 @@
+<div class="table-responsive">
+    <table class="table align-middle mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Book Title</th>
+                <th>Member Name</th>
+                <th>Status</th>
+                <th class="text-end">Duration</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transaction in report_data %}
+            <tr>
+                <td>{{ transaction.borrow_date }}</td>
+                <td>
+                    {% if transaction.return_date %}
+                        <span class="badge bg-success">Returned</span>
+                    {% else %}
+                        <span class="badge bg-primary">Borrowed</span>
+                    {% endif %}
+                </td>
+                <td>{{ transaction.book_title }}</td>
+                <td>{{ transaction.member_name }}</td>
+                <td>
+                    {% if not transaction.return_date %}
+                        {% set days_borrowed = ((current_date.date() - datetime.strptime(transaction.borrow_date, '%Y-%m-%d').date()).days) %}
+                        {% if days_borrowed > 14 %}
+                            <span class="badge bg-danger">Overdue</span>
+                        {% else %}
+                            <span class="badge bg-info">Active</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="badge bg-secondary">Completed</span>
+                    {% endif %}
+                </td>
+                <td class="text-end">
+                    {% if transaction.return_date %}
+                        {% set duration = (datetime.strptime(transaction.return_date, '%Y-%m-%d') - datetime.strptime(transaction.borrow_date, '%Y-%m-%d')).days %}
+                        {{ duration }} days
+                    {% else %}
+                        {% set days_borrowed = ((current_date.date() - datetime.strptime(transaction.borrow_date, '%Y-%m-%d').date()).days) %}
+                        {{ days_borrowed }} days (ongoing)
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            {% if not report_data %}
+            <tr>
+                <td colspan="6" class="text-center text-muted">No transactions found for the selected period.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
