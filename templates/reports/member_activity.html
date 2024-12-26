@@ -1,0 +1,40 @@
+<div class="table-responsive">
+    <table class="table align-middle mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Member Name</th>
+                <th>Email</th>
+                <th>Total Books Borrowed</th>
+                <th>Currently Borrowed</th>
+                <th>Return Rate</th>
+                <th class="text-end">Activity Level</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for member in report_data %}
+            <tr>
+                <td>{{ member.name }}</td>
+                <td>{{ member.email }}</td>
+                <td>{{ member.total_borrowed }}</td>
+                <td>{{ member.current_borrowed }}</td>
+                <td>
+                    {% if member.return_rate >= 90 %}
+                        <span class="badge bg-success">{{ member.return_rate }}%</span>
+                    {% elif member.return_rate >= 70 %}
+                        <span class="badge bg-warning">{{ member.return_rate }}%</span>
+                    {% else %}
+                        <span class="badge bg-danger">{{ member.return_rate }}%</span>
+                    {% endif %}
+                </td>
+                <td class="text-end">
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-primary" role="progressbar" 
+                             style="width: {{ member.activity_level }}%"
+                             title="{{ member.activity_level }}%"></div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
