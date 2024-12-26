@@ -144,37 +144,48 @@ def validate_member(member):
         return False
 
 def validate_transaction(transaction):
-    """Validate transaction data with improved checks"""
+    """Validate transaction data with improved checks and logging"""
     required_fields = ['book_isbn', 'member_email', 'type', 'date']
 
     try:
         # Check required fields
-        if not all(field in transaction and transaction[field] for field in required_fields):
-            return False
+        for field in required_fields:
+            if field not in transaction or not transaction[field]:
+                logging.error(f"Missing required field in transaction: {field}")
+                return False
 
         # Validate transaction type
         if transaction['type'] not in ['borrow', 'return']:
+            logging.error(f"Invalid transaction type: {transaction['type']}")
             return False
 
-        # Validate date format
+        # Validate date format and value
         try:
-            date = datetime.strptime(transaction['date'], '%Y-%m-%d')
-            if date > datetime.now():
+            trans_date = datetime.strptime(transaction['date'], '%Y-%m-%d').date()
+            current_date = datetime.now().date()
+
+            # Only check if the date is more than today
+            if trans_date > current_date:
+                logging.error("Transaction date cannot be in the future")
                 return False
-        except ValueError:
+        except ValueError as e:
+            logging.error(f"Date validation error: {str(e)}")
             return False
 
         # Validate ISBN and email
         if not is_valid_isbn(transaction['book_isbn']):
+            logging.error(f"Invalid ISBN: {transaction['book_isbn']}")
             return False
 
         try:
             validate_email(transaction['member_email'])
-        except EmailNotValidError:
+        except EmailNotValidError as e:
+            logging.error(f"Invalid email: {str(e)}")
             return False
 
         return True
-    except Exception:
+    except Exception as e:
+        logging.error(f"Unexpected error in transaction validation: {str(e)}")
         return False
 
 def update_record(filename, identifier_field, identifier_value, new_data):
