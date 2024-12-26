@@ -18,9 +18,27 @@
         "quantity": 1
     },
     {
-        "title": "baba",
+        "title": "baba mimi",
         "author": "beer",
         "isbn": "342423423",
         "quantity": 5
+    },
+    {
+        "title": "Sapients",
+        "author": "Tony Fer",
+        "isbn": "3948023483",
+        "quantity": 5
+    },
+    {
+        "title": "Rich Day Poor Dad",
+        "author": "Wesley John",
+        "isbn": "3240923423",
+        "quantity": 8
+    },
+    {
+        "title": "2222",
+        "author": "2222",
+        "isbn": "33333",
+        "quantity": 1
     }
 ]
