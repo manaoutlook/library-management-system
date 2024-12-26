@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card rounded-4 shadow-sm">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Generate Reports</h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="report_type" class="form-label">Report Type</label>
+                        <select class="form-select" id="report_type" name="report_type">
+                            <option value="transactions" {% if request.args.get('report_type') == 'transactions' %}selected{% endif %}>Transaction History</option>
+                            <option value="book_usage" {% if request.args.get('report_type') == 'book_usage' %}selected{% endif %}>Book Usage Analytics</option>
+                            <option value="member_activity" {% if request.args.get('report_type') == 'member_activity' %}selected{% endif %}>Member Activity</option>
+                            <option value="overdue" {% if request.args.get('report_type') == 'overdue' %}selected{% endif %}>Overdue Books</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_from" class="form-label">From Date</label>
+                        <input type="date" class="form-control" id="date_from" name="date_from" 
+                               value="{{ request.args.get('date_from', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_to" class="form-label">To Date</label>
+                        <input type="date" class="form-control" id="date_to" name="date_to" 
+                               value="{{ request.args.get('date_to', '') }}">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <div class="d-grid w-100">
+                            <button type="submit" class="btn btn-primary">
+                                <i data-feather="filter" class="me-2"></i>Generate Report
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if report_data %}
+<div class="row">
+    <div class="col-12">
+        <div class="card rounded-4 shadow-sm">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">{{ report_title }}</h5>
+                    <div class="btn-group">
+                        <a href="{{ url_for('download_report', report_type=request.args.get('report_type', ''), date_from=request.args.get('date_from', ''), date_to=request.args.get('date_to', ''), format='csv') }}" 
+                           class="btn btn-sm btn-outline-primary">
+                            <i data-feather="download" class="me-1"></i>Export CSV
+                        </a>
+                        <a href="{{ url_for('download_report', report_type=request.args.get('report_type', ''), date_from=request.args.get('date_from', ''), date_to=request.args.get('date_to', ''), format='pdf') }}" 
+                           class="btn btn-sm btn-outline-secondary">
+                            <i data-feather="file-text" class="me-1"></i>Export PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if request.args.get('report_type') == 'book_usage' %}
+                    {% include 'reports/book_usage.html' %}
+                {% elif request.args.get('report_type') == 'member_activity' %}
+                    {% include 'reports/member_activity.html' %}
+                {% elif request.args.get('report_type') == 'overdue' %}
+                    {% include 'reports/overdue.html' %}
+                {% else %}
+                    {% include 'reports/transactions.html' %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
